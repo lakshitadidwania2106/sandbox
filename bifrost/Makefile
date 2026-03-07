@@ -151,6 +151,12 @@ build-ui: install-ui ## Build ui
 	@rm -rf ui/.next
 	@cd ui && npm run build && npm run copy-build
 
+build-api-only: ## Build bifrost-http binary without UI (faster, no npm required)
+	@echo "$(GREEN)Building bifrost-http (API only, skipping UI)...$(NC)"
+	@mkdir -p ./tmp
+	@cd transports/bifrost-http && go build -o ../../tmp/bifrost-http .
+	@echo "$(GREEN)Built: tmp/bifrost-http$(NC)"
+
 build: build-ui ## Build bifrost-http binary
 	@if [ -n "$(LOCAL)" ]; then \
 		echo "$(GREEN)╔═══════════════════════════════════════════════╗$(NC)"; \

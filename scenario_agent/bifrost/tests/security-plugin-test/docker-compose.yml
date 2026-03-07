@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  # Presidio Analyzer - Detects PII entities in text
+  presidio-analyzer:
+    image: mcr.microsoft.com/presidio-analyzer:latest
+    container_name: bifrost-presidio-analyzer
+    ports:
+      - "5000:3000"
+    environment:
+      - GRPC_PORT=5001
+      - LOG_LEVEL=INFO
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - bifrost-security
+
+  # Presidio Anonymizer - Redacts/anonymizes detected PII
+  presidio-anonymizer:
+    image: mcr.microsoft.com/presidio-anonymizer:latest
+    container_name: bifrost-presidio-anonymizer
+    ports:
+      - "5001:3000"
+    environment:
+      - GRPC_PORT=5002
+      - LOG_LEVEL=INFO
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - bifrost-security
+
+networks:
+  bifrost-security:
+    driver: bridge

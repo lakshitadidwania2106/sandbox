@@ -1,0 +1,10 @@
+{
+  "tool_name": "read_file",
+  "tool_arguments": {
+    "path": "../../etc/passwd"
+  },
+  "context": {
+    "user_role": "user",
+    "user_id": "test-user-123"
+  }
+}

@@ -13,7 +13,7 @@ import (
 	"github.com/maximhq/bifrost/core/schemas"
 )
 
-// PIIDetector identifies and redacts sensitive data using Presidio service
+// PIIDetector identifies and redacts sensitive data using the Presidio service
 type PIIDetector struct {
 	presidioURL string
 	client      *http.Client
@@ -33,19 +33,14 @@ func NewPIIDetector(config *SecurityConfig, logger schemas.Logger) (*PIIDetector
 	}, nil
 }
 
-// PresidioAnalyzeRequest represents the request to Presidio analyze endpoint
+// PresidioAnalyzeRequest is the request body for the Presidio /analyze endpoint
 type PresidioAnalyzeRequest struct {
 	Text     string   `json:"text"`
 	Language string   `json:"language"`
 	Entities []string `json:"entities,omitempty"`
 }
 
-// PresidioAnalyzeResponse represents the response from Presidio analyze endpoint
-type PresidioAnalyzeResponse struct {
-	Entities []PresidioEntity `json:"entities"`
-}
-
-// PresidioEntity represents a detected entity from Presidio
+// PresidioEntity is a single detected entity from Presidio's response array
 type PresidioEntity struct {
 	EntityType string  `json:"entity_type"`
 	Start      int     `json:"start"`
@@ -55,7 +50,7 @@ type PresidioEntity struct {
 
 // PresidioAnonymizeRequest represents the request to Presidio anonymize endpoint
 type PresidioAnonymizeRequest struct {
-	Text        string                    `json:"text"`
+	Text        string                       `json:"text"`
 	Anonymizers map[string]map[string]string `json:"anonymizers"`
 }
 
@@ -64,17 +59,43 @@ type PresidioAnonymizeResponse struct {
 	Text string `json:"text"`
 }
 
-// Analyze detects PII entities in the given text with retry logic
+// presidioEntityToType maps Presidio entity types to our internal type names.
+// This normalizes names like US_SSN -> SSN so OPA policies can refer to "SSN".
+func presidioEntityToType(presidioType string) string {
+	switch presidioType {
+	case "US_SSN":
+		return "SSN"
+	case "EMAIL_ADDRESS":
+		return "EMAIL"
+	default:
+		return presidioType
+	}
+}
+
+// Analyze detects PII entities in the given text using Presidio, with retry logic.
 func (pd *PIIDetector) Analyze(text string) ([]PIIEntity, error) {
 	if text == "" {
 		return nil, nil
 	}
 
-	// Prepare request
+	// Translate our internal entity type names to the names Presidio knows.
+	// e.g. "SSN" -> "US_SSN", since that's what the UsSsnRecognizer reports.
+	presidioEntities := make([]string, 0, len(pd.entityTypes))
+	for _, e := range pd.entityTypes {
+		switch e {
+		case "SSN":
+			presidioEntities = append(presidioEntities, "US_SSN")
+		case "EMAIL":
+			presidioEntities = append(presidioEntities, "EMAIL_ADDRESS")
+		default:
+			presidioEntities = append(presidioEntities, e)
+		}
+	}
+
 	analyzeReq := PresidioAnalyzeRequest{
 		Text:     text,
 		Language: "en",
-		Entities: pd.entityTypes,
+		Entities: presidioEntities,
 	}
 
 	reqBody, err := json.Marshal(analyzeReq)
@@ -88,10 +109,8 @@ func (pd *PIIDetector) Analyze(text string) ([]PIIEntity, error) {
 
 	var lastErr error
 	for attempt := 0; attempt < maxRetries; attempt++ {
-		// Create context with timeout for this attempt
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		
-		// Create HTTP request with context
+
 		req, err := http.NewRequestWithContext(ctx, "POST", pd.presidioURL+"/analyze", bytes.NewBuffer(reqBody))
 		if err != nil {
 			cancel()
@@ -99,7 +118,6 @@ func (pd *PIIDetector) Analyze(text string) ([]PIIEntity, error) {
 		}
 		req.Header.Set("Content-Type", "application/json")
 
-		// Execute request
 		resp, err := pd.client.Do(req)
 		cancel()
 
@@ -114,19 +132,17 @@ func (pd *PIIDetector) Analyze(text string) ([]PIIEntity, error) {
 				time.Sleep(backoffDurations[attempt])
 				continue
 			}
-			// Final failure - log warning and return empty list (graceful degradation)
 			pd.logger.Warn("Presidio analyze request failed after all retries, returning empty PII list",
 				"attempts", maxRetries,
 				"error", err.Error())
 			return []PIIEntity{}, nil
 		}
 
-		// Check status code
 		if resp.StatusCode != http.StatusOK {
 			body, _ := io.ReadAll(resp.Body)
 			resp.Body.Close()
 			lastErr = fmt.Errorf("presidio analyze error %d: %s", resp.StatusCode, body)
-			
+
 			if attempt < maxRetries-1 {
 				pd.logger.Warn("Presidio analyze returned error status, retrying",
 					"attempt", attempt+1,
@@ -136,19 +152,29 @@ func (pd *PIIDetector) Analyze(text string) ([]PIIEntity, error) {
 				time.Sleep(backoffDurations[attempt])
 				continue
 			}
-			// Final failure - log warning and return empty list (graceful degradation)
 			pd.logger.Warn("Presidio analyze failed after all retries, returning empty PII list",
 				"attempts", maxRetries,
 				"status_code", resp.StatusCode)
 			return []PIIEntity{}, nil
 		}
 
-		// Parse response
-		var analyzeResp PresidioAnalyzeResponse
-		if err := json.NewDecoder(resp.Body).Decode(&analyzeResp); err != nil {
-			resp.Body.Close()
+		body, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if err != nil {
+			lastErr = fmt.Errorf("failed to read analyze response body: %w", err)
+			if attempt < maxRetries-1 {
+				time.Sleep(backoffDurations[attempt])
+				continue
+			}
+			return []PIIEntity{}, lastErr
+		}
+
+		pd.logger.Debug("Presidio analyze raw response", "body", string(body))
+
+		// Presidio returns a raw JSON array, not a wrapped object.
+		var analyzeResp []PresidioEntity
+		if err := json.Unmarshal(body, &analyzeResp); err != nil {
 			lastErr = fmt.Errorf("failed to decode analyze response: %w", err)
-			
 			if attempt < maxRetries-1 {
 				pd.logger.Warn("Failed to decode Presidio response, retrying",
 					"attempt", attempt+1,
@@ -158,19 +184,17 @@ func (pd *PIIDetector) Analyze(text string) ([]PIIEntity, error) {
 				time.Sleep(backoffDurations[attempt])
 				continue
 			}
-			// Final failure - log warning and return empty list (graceful degradation)
 			pd.logger.Warn("Failed to decode Presidio response after all retries, returning empty PII list",
 				"attempts", maxRetries,
 				"error", err.Error())
 			return []PIIEntity{}, nil
 		}
-		resp.Body.Close()
 
-		// Success! Convert to PIIEntity
-		entities := make([]PIIEntity, 0, len(analyzeResp.Entities))
-		for _, result := range analyzeResp.Entities {
+		// Convert Presidio results to our internal PIIEntity format
+		entities := make([]PIIEntity, 0, len(analyzeResp))
+		for _, result := range analyzeResp {
 			entities = append(entities, PIIEntity{
-				Type:  result.EntityType,
+				Type:  presidioEntityToType(result.EntityType),
 				Text:  text[result.Start:result.End],
 				Start: result.Start,
 				End:   result.End,
@@ -178,32 +202,31 @@ func (pd *PIIDetector) Analyze(text string) ([]PIIEntity, error) {
 			})
 		}
 
-		// Resolve overlapping entities
+		// Resolve overlapping entities (keeps highest score)
 		entities = resolveOverlaps(entities)
+		pd.logger.Debug("PII detection complete", "entities_found", len(entities))
 
 		return entities, nil
 	}
 
-	// Should not reach here, but handle gracefully
-	pd.logger.Warn("Presidio analyze failed unexpectedly, returning empty PII list", "error", lastErr)
+	pd.logger.Warn("Presidio analyze failed unexpectedly", "error", lastErr)
 	return []PIIEntity{}, nil
 }
 
-// Redact replaces PII entities with placeholders
+// Redact replaces PII entities with type-labelled placeholders
 func (pd *PIIDetector) Redact(text string, entities []PIIEntity) string {
 	if len(entities) == 0 {
 		return text
 	}
 
-	// Sort entities by start position in descending order
-	// This allows us to replace from end to start, preserving indices
+	// Sort entities by start position descending so we replace from the end,
+	// preserving all other indices.
 	sorted := make([]PIIEntity, len(entities))
 	copy(sorted, entities)
 	sort.Slice(sorted, func(i, j int) bool {
 		return sorted[i].Start > sorted[j].Start
 	})
 
-	// Build redacted text
 	result := text
 	for _, entity := range sorted {
 		placeholder := fmt.Sprintf("[%s]", entity.Type)
@@ -213,34 +236,27 @@ func (pd *PIIDetector) Redact(text string, entities []PIIEntity) string {
 	return result
 }
 
-// resolveOverlaps keeps the highest scoring entity when entities overlap
+// resolveOverlaps keeps the highest scoring entity when detected spans overlap
 func resolveOverlaps(entities []PIIEntity) []PIIEntity {
 	if len(entities) <= 1 {
 		return entities
 	}
 
-	// Sort by start position
-	sorted := make([]PIIEntity, len(entities))
-	copy(sorted, entities)
-	sort.Slice(sorted, func(i, j int) bool {
-		return sorted[i].Start < sorted[j].Start
+	sort.Slice(entities, func(i, j int) bool {
+		return entities[i].Start < entities[j].Start
 	})
 
-	// Keep non-overlapping entities with highest scores
-	result := []PIIEntity{sorted[0]}
-	for i := 1; i < len(sorted); i++ {
-		current := sorted[i]
-		lastAdded := result[len(result)-1]
+	result := []PIIEntity{entities[0]}
+	for i := 1; i < len(entities); i++ {
+		current := entities[i]
+		last := result[len(result)-1]
 
-		// Check if current overlaps with last added
-		if current.Start >= lastAdded.End {
+		if current.Start >= last.End {
 			// No overlap, add current
 			result = append(result, current)
-		} else {
-			// Overlap detected, keep the one with higher score
-			if current.Score > lastAdded.Score {
-				result[len(result)-1] = current
-			}
+		} else if current.Score > last.Score {
+			// Overlap: keep the higher-scoring one
+			result[len(result)-1] = current
 		}
 	}
 

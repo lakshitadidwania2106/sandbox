@@ -29,18 +29,18 @@ type PresidioAnonymizeResponse struct {
 }
 
 type PresidioMiddleware struct {
-	baseURL string
-	client  *http.Client
+	serviceURL string
+	client     *http.Client
 }
 
 func NewPresidioMiddleware() *PresidioMiddleware {
-	baseURL := os.Getenv("PRESIDIO_SERVICE_URL")
-	if baseURL == "" {
-		baseURL = "http://localhost:5000"
+	serviceURL := os.Getenv("SECURITY_SERVICE_URL")
+	if serviceURL == "" {
+		serviceURL = "http://localhost:5000"
 	}
 	return &PresidioMiddleware{
-		baseURL: baseURL,
-		client:  &http.Client{},
+		serviceURL: serviceURL,
+		client:     &http.Client{},
 	}
 }
 
@@ -53,7 +53,7 @@ func (p *PresidioMiddleware) ScrubPII(prompt string) (string, error) {
 	analyzeBody, _ := json.Marshal(analyzeReq)
 	
 	resp, err := p.client.Post(
-		p.baseURL+"/analyze",
+		p.serviceURL+"/analyze",
 		"application/json",
 		bytes.NewBuffer(analyzeBody),
 	)
@@ -84,7 +84,7 @@ func (p *PresidioMiddleware) ScrubPII(prompt string) (string, error) {
 	anonymizeBody, _ := json.Marshal(anonymizeReq)
 	
 	resp, err = p.client.Post(
-		p.baseURL+"/anonymize",
+		p.serviceURL+"/anonymize",
 		"application/json",
 		bytes.NewBuffer(anonymizeBody),
 	)

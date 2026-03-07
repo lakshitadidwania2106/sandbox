@@ -152,16 +152,19 @@ func (sp *SecurityPlugin) HTTPTransportPreHook(ctx *schemas.BifrostContext, req 
 
 	// Step 2: PII detection and redaction
 	if sp.config.EnablePIIDetection && sp.piiDetector != nil {
+		sp.logger.Debug("Starting PII detection", "prompt_len", len(prompt))
 		entities, err := sp.piiDetector.Analyze(prompt)
 		if err != nil {
 			sp.logger.Warn("PII detection failed", "error", err)
 		} else {
+			sp.logger.Debug("PII detection finished", "entities_found", len(entities))
 			decision.PIIEntities = entities
 			if len(entities) > 0 {
 				sp.metrics.IncrementPIIFound(len(entities))
 				
 				if sp.config.RedactPII {
 					redactedPrompt := sp.piiDetector.Redact(prompt, entities)
+					sp.logger.Debug("PII redacted", "redacted_prompt", redactedPrompt)
 					// Update request body with redacted prompt
 					if err := updateRequestPrompt(req, redactedPrompt); err != nil {
 						sp.logger.Warn("Failed to update request with redacted prompt", "error", err)
@@ -169,6 +172,8 @@ func (sp *SecurityPlugin) HTTPTransportPreHook(ctx *schemas.BifrostContext, req 
 				}
 			}
 		}
+	} else {
+		sp.logger.Info("PII detection skipped", "enabled", sp.config.EnablePIIDetection, "detector_nil", sp.piiDetector == nil)
 	}
 
 	// Step 3: Policy evaluation
@@ -262,9 +267,6 @@ func (sp *SecurityPlugin) PostLLMHook(ctx *schemas.BifrostContext, resp *schemas
 					},
 					StatusCode: &statusCode,
 					Type:       &errorType,
-					ExtraFields: schemas.BifrostErrorExtraFields{
-						"blocked_tools": blockedTools,
-					},
 				}
 				allowFallbacks := false
 				bifrostErr.AllowFallbacks = &allowFallbacks

@@ -156,15 +156,28 @@ build_bifrost() {
     fi
     
     print_info "Building Bifrost from source..."
-    cd ../../..
+    # Correct path to repo root relative to script
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    cd "$SCRIPT_DIR/../.."
     
+    # Ensure Go is in PATH if we just installed it
+    if [ -d "/home/unichronic/go-dist/go/bin" ]; then
+        export GOROOT="/home/unichronic/go-dist/go"
+        export PATH="$GOROOT/bin:$PATH"
+    fi
+
     if [ -f "Makefile" ]; then
-        make build
+        make build-api-only
     else
         print_info "No Makefile found, building manually..."
-        cd transports/bifrost-http
-        go build -o ../../bifrost
-        cd ../..
+        if [ -d "transports/bifrost-http" ]; then
+            cd transports/bifrost-http
+            go build -o ../../tmp/bifrost-http .
+            cd ../..
+        else
+            print_error "Could not find transports/bifrost-http"
+            exit 1
+        fi
     fi
     
     if [ -f "bifrost" ]; then

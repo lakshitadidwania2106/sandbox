@@ -1,24 +1,55 @@
-langchain
-langchain-anthropic
-fastapi
-uvicorn
-python-dotenv
-faiss-cpu
-sqlite-utils
-pydantic
+# Core Dependencies
+# =================
+python-dotenv>=1.0.0      # Environment variable management
+requests>=2.28.0          # HTTP client library
+
+# LangChain Ecosystem
+# ===================
+langchain>=0.1.0          # LangChain core framework
+langchain-anthropic>=0.1.0 # Anthropic integration for LangChain
+
+# Web Framework
+# =============
+fastapi>=0.100.0          # Modern web framework for APIs
+uvicorn>=0.23.0           # ASGI server for FastAPI
+
+# Database & Storage
+# ==================
+sqlite-utils>=3.34        # SQLite utilities
+faiss-cpu>=1.7.4          # Vector similarity search
+
+# Data Validation
+# ===============
+pydantic>=2.0.0           # Data validation using Python type hints
+
+# AI Agent Framework
+# ==================
+agno>=0.1.0               # Agent framework (for scenario_agent)
+
 # Security Layer Dependencies
 # ============================
-# These are the dependencies required for the security package
-# (Lakera Guard + Presidio integration).
 
-# --- Layer 3: Lakera Guard ---
-requests>=2.28.0          # HTTP client for Lakera Guard API calls
+# Layer 3: Lakera Guard (Prompt Injection Detection)
+# No additional dependencies beyond requests
 
-# --- Layer 4: Presidio ---
-presidio-analyzer>=2.2.0  # Microsoft Presidio - PII entity detection engine
-presidio-anonymizer>=2.2.0 # Microsoft Presidio - PII redaction/anonymization engine
-spacy>=3.5.0              # NLP backend required by Presidio's default recognizers
+# Layer 4: Presidio (PII & Secret Detection)
+presidio-analyzer>=2.2.0   # Microsoft Presidio - PII entity detection
+presidio-anonymizer>=2.2.0 # Microsoft Presidio - PII redaction/anonymization
+spacy>=3.5.0               # NLP backend for Presidio
 
-# --- Shared ---
-python-dotenv>=1.0.0      # Load environment variables from .env file
+# Note: After installing spacy, you need to download the English language model:
+# python -m spacy download en_core_web_lg
 
+# Layer 5: Enhanced Similarity Detection (SigmaShield-inspired)
+# ==============================================================
+rapidfuzz>=3.0.0           # Fast fuzzy string matching for code similarity
+mitmproxy>=10.0.0          # MITM proxy for network traffic interception
+
+# Optional: ML-based code classification (large dependencies)
+# fasttext>=0.9.3          # FastText for code vs non-code classification
+# huggingface-hub>=0.31.0  # For downloading pre-trained models
+
+# Testing & Development
+# =====================
+pytest>=7.0.0              # Testing framework (optional)
+pytest-asyncio>=0.21.0     # Async test support (optional)

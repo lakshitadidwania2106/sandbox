@@ -12,13 +12,33 @@ Layers provided:
 Usage:
     from security.lakera_guard import scan_prompt
     from security.presidio_analyzer import scan_output, redact_output
+
+Note: Imports are lazy to avoid import errors when optional dependencies
+      (e.g., spaCy for Presidio) are not installed or incompatible.
 """
 
-# --- Layer 3: Lakera Guard (Prompt Injection Detection) ---
-from security.lakera_guard import scan_prompt
 
-# --- Layer 4: Presidio (PII/Secret Leak Detection) ---
-from security.presidio_analyzer import scan_output, redact_output
+def __getattr__(name):
+    """
+    Lazy import handler — only loads modules when their exports are accessed.
+    This prevents spaCy/Presidio import failures from blocking Lakera usage.
+    """
+    # --- Layer 3: Lakera Guard (Prompt Injection Detection) ---
+    if name == "scan_prompt":
+        from security.lakera_guard import scan_prompt
+        return scan_prompt
+
+    # --- Layer 4: Presidio (PII/Secret Leak Detection) ---
+    if name == "scan_output":
+        from security.presidio_analyzer import scan_output
+        return scan_output
+
+    if name == "redact_output":
+        from security.presidio_analyzer import redact_output
+        return redact_output
+
+    raise AttributeError(f"module 'security' has no attribute {name!r}")
+
 
 __all__ = [
     "scan_prompt",

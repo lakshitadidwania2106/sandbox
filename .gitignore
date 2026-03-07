@@ -1,24 +1,144 @@
-# Secrets and Credentials
-.env
-credentials.json
-token.pickle
-
-# Database
- company.db
-*.sqlite3
-*.db
-
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
-venv/
-.venv/
-env/
-.env/
-scenario_agent/.env
-mcp_gateaway/.env
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+*.log
 
-# Editor/OS
-.DS_Store
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
+*.env
+
+# IDE
 .vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Next.js
+.next/
+out/
+.vercel
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Testing
+coverage/
+.nyc_output
+*.lcov
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+tmp/
+
+# Security
+*.pem
+*.key
+*.cert
+credentials.json
+token.json
+client_secret*.json
+
+# Bifrost specific
+bifrost/ui/node_modules/
+bifrost/ui/.next/
+bifrost/ui/out/
+bifrost/ui/dist/
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+
+# Rust
+target/
+Cargo.lock
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+
+# Docker
+*.dockerignore
+
+# Coverage
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.pytest_cache/
+nosetests.xml
+coverage.xml
+*.cover
+
+# Misc
+*.bak
+*.swp
+.kiro/cache/

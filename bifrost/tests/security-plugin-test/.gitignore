@@ -1,0 +1,23 @@
+# Logs
+logs/
+*.log
+
+# Environment files
+.env
+.env.local
+
+# Test results
+test-results/
+*.xml
+*.json.bak
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

@@ -1,0 +1,10 @@
+{
+  "tool_name": "execute_command",
+  "tool_arguments": {
+    "command": "rm -rf /tmp/test"
+  },
+  "context": {
+    "user_role": "user",
+    "user_id": "test-user-123"
+  }
+}

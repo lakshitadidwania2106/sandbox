@@ -104,6 +104,7 @@ bifrost/ui/node_modules/
 bifrost/ui/.next/
 bifrost/ui/out/
 bifrost/ui/dist/
+bifrost/tmp
 
 # Go
 *.exe

@@ -94,47 +94,111 @@ def _build_custom_secret_recognizers() -> List[PatternRecognizer]:
 
     Returns:
         List of custom PatternRecognizer instances.
-
-    # TODO: Add more custom recognizers specific to your application's secrets.
-    #       For example, internal employee IDs, project codes, etc.
     """
 
     recognizers = []
 
-    # --- 1. Generic API Key Detector ---
-    # Matches common API key formats: long alphanumeric strings often with
-    # prefixes like "sk-", "pk-", "api-", etc.
-    # TODO: Refine these patterns based on the actual API keys your system uses.
+    # --- 1. CVV Code ---
+    cvv_recognizer = PatternRecognizer(
+        supported_entity="CVV",
+        name="CVVRecognizer",
+        patterns=[
+            Pattern(
+                name="cvv",
+                regex=r"\bCVV:?\s*\d{3,4}\b",
+                score=0.95,
+            ),
+        ],
+        context=["cvv", "security code", "card"],
+    )
+    recognizers.append(cvv_recognizer)
+
+    # --- 2. 2FA Secret / TOTP ---
+    totp_recognizer = PatternRecognizer(
+        supported_entity="2FA_SECRET",
+        name="TOTPRecognizer",
+        patterns=[
+            Pattern(
+                name="totp_secret",
+                regex=r"\b2FA Secret:?\s*[A-Z2-7]{16,}\b",
+                score=0.95,
+            ),
+        ],
+        context=["2fa", "totp", "secret", "authenticator"],
+    )
+    recognizers.append(totp_recognizer)
+
+    # --- 3. Password Hash ---
+    password_hash_recognizer = PatternRecognizer(
+        supported_entity="PASSWORD_HASH",
+        name="PasswordHashRecognizer",
+        patterns=[
+            Pattern(
+                name="bcrypt_hash",
+                regex=r"\$2[aby]\$\d{2}\$[A-Za-z0-9./]{53,}",
+                score=0.95,
+            ),
+        ],
+        context=["password", "hash", "bcrypt"],
+    )
+    recognizers.append(password_hash_recognizer)
+
+    # --- 4. Security Questions ---
+    security_question_recognizer = PatternRecognizer(
+        supported_entity="SECURITY_ANSWER",
+        name="SecurityQuestionRecognizer",
+        patterns=[
+            Pattern(
+                name="security_answer",
+                regex=r"Security Question \d+[^:]*:\s*([^\n]+)",
+                score=0.9,
+            ),
+        ],
+        context=["security question", "mother's maiden", "first pet", "first car"],
+    )
+    recognizers.append(security_question_recognizer)
+
+    # --- 5. Medical Conditions ---
+    medical_recognizer = PatternRecognizer(
+        supported_entity="MEDICAL_CONDITION",
+        name="MedicalConditionRecognizer",
+        patterns=[
+            Pattern(
+                name="medical_condition",
+                regex=r"Medical Conditions?:?\s*([^\n]+)",
+                score=0.9,
+            ),
+            Pattern(
+                name="prescription",
+                regex=r"Prescription Medications?:?\s*([^\n]+)",
+                score=0.9,
+            ),
+        ],
+        context=["medical", "prescription", "medication", "condition", "diagnosis"],
+    )
+    recognizers.append(medical_recognizer)
+
+    # --- 6. Generic API Key Detector ---
     api_key_recognizer = PatternRecognizer(
         supported_entity="API_KEY",
         name="APIKeyRecognizer",
         patterns=[
-            # Keys with common prefixes (sk-, pk-, api-, key-, token-)
             Pattern(
                 name="prefixed_key",
                 regex=r"\b(?:sk|pk|api|key|token|bearer|secret|access)[_\-]?[A-Za-z0-9]{20,}\b",
                 score=0.85,
             ),
-            # Generic long hex strings (32+ chars) — likely tokens or hashes
             Pattern(
                 name="hex_token",
                 regex=r"\b[a-fA-F0-9]{32,}\b",
                 score=0.6,
-            ),
-            # Base64-encoded strings (40+ chars) — possible encoded secrets
-            # TODO: This may produce false positives. Adjust score or length threshold.
-            Pattern(
-                name="base64_token",
-                regex=r"\b[A-Za-z0-9+/]{40,}={0,2}\b",
-                score=0.5,
             ),
         ],
         context=["key", "token", "secret", "api", "password", "credential", "auth"],
     )
     recognizers.append(api_key_recognizer)
 
-    # --- 2. AWS Access Key Detector ---
-    # AWS access keys start with AKIA (active) or ASIA (temporary)
+    # --- 7. AWS Access Key Detector ---
     aws_key_recognizer = PatternRecognizer(
         supported_entity="AWS_ACCESS_KEY",
         name="AWSAccessKeyRecognizer",

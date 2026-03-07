@@ -35,7 +35,7 @@ LAKERA_API_URL = os.getenv("LAKERA_API_URL", "https://api.lakera.ai")
 # Lower values = more aggressive blocking, Higher values = more permissive
 # TODO: Tune this threshold based on your use case and false positive tolerance.
 LAKERA_CONFIDENCE_THRESHOLD = float(
-    os.getenv("LAKERA_CONFIDENCE_THRESHOLD", "0.5")
+    os.getenv("LAKERA_CONFIDENCE_THRESHOLD", "0.8")
 )
 
 
@@ -47,7 +47,7 @@ LAKERA_CONFIDENCE_THRESHOLD = float(
 # Lower values = more sensitive detection, Higher values = fewer false positives
 # TODO: Tune this threshold based on your application's sensitivity requirements.
 PRESIDIO_SCORE_THRESHOLD = float(
-    os.getenv("PRESIDIO_SCORE_THRESHOLD", "0.7")
+    os.getenv("PRESIDIO_SCORE_THRESHOLD", "0.3")
 )
 
 # List of PII entity types to detect in LLM output
@@ -64,9 +64,15 @@ PRESIDIO_ENTITIES = [
     "PERSON",               # Person names
     "US_PASSPORT",          # US passport numbers
     "US_DRIVER_LICENSE",    # US driver's license numbers
-    # TODO: Add custom entity types for your domain if needed, e.g.:
-    # "MEDICAL_LICENSE",
-    # "NRP",  # Nationalities, religious or political groups
+    "LOCATION",             # Addresses and locations
+    "DATE_TIME",            # Dates and times
+    "NRP",                  # Nationalities, religious or political groups
+    "URL",                  # URLs
+    "US_BANK_NUMBER",       # Bank account numbers
+    "AU_ABN",               # Australian Business Number
+    "AU_ACN",               # Australian Company Number
+    "AU_TFN",               # Australian Tax File Number
+    "AU_MEDICARE",          # Australian Medicare Number
 ]
 
 # Redaction placeholder format

@@ -114,7 +114,8 @@ User → 🛡️ Security Layers → Agent → 🛡️ Security Layers → Respo
 
 🎯 **Your Amazon Order Simulator is now enterprise-grade secure!**
 
-- ✅ Prompt injection protection (Lakera)
+- ✅ 
+ protection (Lakera)
 - ✅ Policy enforcement (OPA)
 - ✅ PII detection & scrubbing (Presidio)
 - ✅ Real-time security monitoring

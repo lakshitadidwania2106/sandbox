@@ -67,7 +67,7 @@ clean_text = redact_output(agent_response)
 
 ### 1. Install Dependencies
 ```bash
-pip install -r security/requirements.txt
+pip install -r requirements.txt
 python -m spacy download en_core_web_lg
 ```
 

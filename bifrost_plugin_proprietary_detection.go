@@ -45,6 +45,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/maximhq/bifrost/core/schemas"
@@ -300,8 +301,21 @@ func (p *ProprietaryDetectionPlugin) checkIfProprietaryCode(text string) (bool, 
 	return false, nil
 }
 
+// normalizeCode normalizes code for comparison - handles both formatted and minified code
+func normalizeCode(code string) string {
+	// Remove extra whitespace but keep single spaces
+	re := regexp.MustCompile(`\s+`)
+	normalized := re.ReplaceAllString(code, " ")
+	
+	// Remove spaces around operators and punctuation
+	re2 := regexp.MustCompile(`\s*([=+\-*/<>!,(){}[\]:;])\s*`)
+	normalized = re2.ReplaceAllString(normalized, "$1")
+	
+	return strings.TrimSpace(normalized)
+}
+
 // fuzzySearchInFile performs fuzzy search in a single file
-// This is the exact SigmaShield approach
+// Enhanced to detect both formatted and minified code
 func (p *ProprietaryDetectionPlugin) fuzzySearchInFile(filePath string, targetSnippet string) *MatchInfo {
 	// Read file content
 	content, err := os.ReadFile(filePath)
@@ -323,8 +337,9 @@ func (p *ProprietaryDetectionPlugin) fuzzySearchInFile(filePath string, targetSn
 
 	bestScore := 0.0
 	bestIndex := -1
+	matchType := "formatted"
 
-	// Sliding window approach
+	// Method 1: Original sliding window (for formatted code)
 	for i := 0; i <= len(codeLines)-snippetLen; i++ {
 		window := strings.Join(codeLines[i:i+snippetLen], "\n")
 		windowTrimmed := strings.TrimSpace(window)
@@ -335,7 +350,21 @@ func (p *ProprietaryDetectionPlugin) fuzzySearchInFile(filePath string, targetSn
 		if score > bestScore {
 			bestScore = score
 			bestIndex = i
+			matchType = "formatted"
 		}
+	}
+
+	// Method 2: Normalized comparison (for minified/unformatted code)
+	targetNormalized := normalizeCode(targetSnippet)
+	fullCodeNormalized := normalizeCode(fullCode)
+	
+	// Check if normalized target appears in normalized full code
+	normalizedScore := rapidfuzz.PartialRatio(targetNormalized, fullCodeNormalized)
+	
+	if normalizedScore > bestScore {
+		bestScore = normalizedScore
+		bestIndex = 0
+		matchType = "normalized"
 	}
 
 	// If score exceeds threshold, return match

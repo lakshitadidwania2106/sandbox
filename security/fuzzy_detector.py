@@ -19,11 +19,24 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def normalize_code(code):
+    """
+    Normalize code for comparison - handles both formatted and minified code.
+    Removes extra whitespace while preserving code structure.
+    """
+    import re
+    # Remove extra whitespace but keep single spaces
+    normalized = re.sub(r'\s+', ' ', code)
+    # Remove spaces around operators and punctuation for better matching
+    normalized = re.sub(r'\s*([=+\-*/<>!,(){}[\]:;])\s*', r'\1', normalized)
+    return normalized.strip()
+
+
 def fuzzy_search_in_file(file_path, target_snippet, min_score=60):
     """
     Search for similar code in a file using sliding window + fuzzy matching.
     
-    This is the EXACT logic from SigmaShield - proven to work.
+    Enhanced to detect both formatted and minified/unformatted code.
     
     Args:
         file_path: Path to file to search
@@ -40,39 +53,52 @@ def fuzzy_search_in_file(file_path, target_snippet, min_score=60):
         logger.error(f"Failed to read {file_path}: {e}")
         return False
 
-    # IMPORTANT: Only strip, no other normalization!
     target_snippet = target_snippet.strip()
     
     best_score = 0
     best_match = ""
     best_index = -1
+    match_type = ""
 
     code_lines = full_code.splitlines()
     snippet_lines = target_snippet.splitlines()
     snippet_len = len(snippet_lines)
 
-    # Sliding window approach
+    # Method 1: Original sliding window (for formatted code)
     for i in range(len(code_lines) - snippet_len + 1):
         window = "\n".join(code_lines[i:i + snippet_len])
-        
-        # Calculate fuzzy similarity (IMPORTANT: strip both sides)
         score = fuzz.ratio(window.strip(), target_snippet)
         
         if score > best_score:
             best_score = score
             best_match = window
             best_index = i
+            match_type = "formatted"
+
+    # Method 2: Normalized comparison (for minified/unformatted code)
+    # This catches code that's been put on one line or reformatted
+    target_normalized = normalize_code(target_snippet)
+    full_code_normalized = normalize_code(full_code)
+    
+    # Check if normalized target appears in normalized full code
+    normalized_score = fuzz.partial_ratio(target_normalized, full_code_normalized)
+    
+    if normalized_score > best_score:
+        best_score = normalized_score
+        best_match = target_snippet  # Show original for clarity
+        best_index = 0
+        match_type = "normalized"
 
     # If score exceeds threshold, we found a match
     if best_score >= min_score:
         logger.warning(
             f"\n✅ Match found in file: {file_path}\n"
-            f"📌 Match (score: {best_score}) starting at line {best_index + 1}:\n"
+            f"📌 Match (score: {best_score}, type: {match_type}) starting at line {best_index + 1}:\n"
             f"{best_match}"
         )
-        return True  # Signal to stop further search
+        return True
 
-    return False  # No good match in this file
+    return False
 
 
 def global_fuzzy_search(target_snippet, folder_path=None, min_score=60):

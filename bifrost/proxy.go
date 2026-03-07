@@ -156,6 +156,24 @@ func (g *BifrostGateway) extractText(payload map[string]interface{}) string {
 			}
 		}
 	}
+	
+	// Google Gemini contents format
+	if contents, ok := payload["contents"].([]interface{}); ok {
+		for _, content := range contents {
+			if c, ok := content.(map[string]interface{}); ok {
+				if parts, ok := c["parts"].([]interface{}); ok {
+					for _, part := range parts {
+						if p, ok := part.(map[string]interface{}); ok {
+							if text, ok := p["text"].(string); ok {
+								return text
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	
 	// Legacy prompt format
 	if prompt, ok := payload["prompt"].(string); ok {
 		return prompt
@@ -164,6 +182,7 @@ func (g *BifrostGateway) extractText(payload map[string]interface{}) string {
 }
 
 func (g *BifrostGateway) replaceText(payload map[string]interface{}, newText string) {
+	// OpenAI/Anthropic messages format
 	if messages, ok := payload["messages"].([]interface{}); ok {
 		for _, msg := range messages {
 			if m, ok := msg.(map[string]interface{}); ok {
@@ -174,6 +193,26 @@ func (g *BifrostGateway) replaceText(payload map[string]interface{}, newText str
 			}
 		}
 	}
+	
+	// Google Gemini contents format
+	if contents, ok := payload["contents"].([]interface{}); ok {
+		for _, content := range contents {
+			if c, ok := content.(map[string]interface{}); ok {
+				if parts, ok := c["parts"].([]interface{}); ok {
+					for _, part := range parts {
+						if p, ok := part.(map[string]interface{}); ok {
+							if _, ok := p["text"].(string); ok {
+								p["text"] = newText
+								return
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	// Legacy prompt format
 	if _, ok := payload["prompt"].(string); ok {
 		payload["prompt"] = newText
 	}
@@ -195,6 +234,7 @@ func (g *BifrostGateway) extractResponseText(payload map[string]interface{}) str
 			}
 		}
 	}
+	
 	// Anthropic format
 	if content, ok := payload["content"].([]interface{}); ok {
 		for _, item := range content {
@@ -205,10 +245,31 @@ func (g *BifrostGateway) extractResponseText(payload map[string]interface{}) str
 			}
 		}
 	}
+	
+	// Google Gemini format
+	if candidates, ok := payload["candidates"].([]interface{}); ok {
+		for _, candidate := range candidates {
+			if c, ok := candidate.(map[string]interface{}); ok {
+				if content, ok := c["content"].(map[string]interface{}); ok {
+					if parts, ok := content["parts"].([]interface{}); ok {
+						for _, part := range parts {
+							if p, ok := part.(map[string]interface{}); ok {
+								if text, ok := p["text"].(string); ok {
+									return text
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	
 	return ""
 }
 
 func (g *BifrostGateway) replaceResponseText(payload map[string]interface{}, newText string) {
+	// OpenAI format
 	if choices, ok := payload["choices"].([]interface{}); ok {
 		for _, choice := range choices {
 			if c, ok := choice.(map[string]interface{}); ok {
@@ -225,12 +286,34 @@ func (g *BifrostGateway) replaceResponseText(payload map[string]interface{}, new
 			}
 		}
 	}
+	
+	// Anthropic format
 	if content, ok := payload["content"].([]interface{}); ok {
 		for _, item := range content {
 			if c, ok := item.(map[string]interface{}); ok {
 				if _, ok := c["text"].(string); ok {
 					c["text"] = newText
 					return
+				}
+			}
+		}
+	}
+	
+	// Google Gemini format
+	if candidates, ok := payload["candidates"].([]interface{}); ok {
+		for _, candidate := range candidates {
+			if c, ok := candidate.(map[string]interface{}); ok {
+				if content, ok := c["content"].(map[string]interface{}); ok {
+					if parts, ok := content["parts"].([]interface{}); ok {
+						for _, part := range parts {
+							if p, ok := part.(map[string]interface{}); ok {
+								if _, ok := p["text"].(string); ok {
+									p["text"] = newText
+									return
+								}
+							}
+						}
+					}
 				}
 			}
 		}

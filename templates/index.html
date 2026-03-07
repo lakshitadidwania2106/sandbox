@@ -65,9 +65,65 @@
             color: #aaa;
             display: none;
         }
+        
+        .security-badge {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .security-layers {
+            margin-top: 15px;
+            padding: 15px;
+            background: #2a2a2a;
+            border-radius: 8px;
+            border-left: 4px solid #00c853;
+            display: none;
+        }
+        
+        .security-layers.show {
+            display: block;
+        }
+        
+        .layer-status {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            font-size: 14px;
+        }
+        
+        .layer-status .status {
+            font-weight: bold;
+        }
+        
+        .layer-status .status.pass {
+            color: #00c853;
+        }
+        
+        .layer-status .status.blocked {
+            color: #ff5252;
+        }
+        
+        .layer-status .status.scrubbed {
+            color: #ffc107;
+        }
     </style>
 </head>
 <body>
+
+    <div class="security-badge">
+        🛡️ Bifrost Security: ACTIVE
+    </div>
 
     <button class="play-btn" onclick="startSimulation()">
         ▶️ Simulate Amazon Order Flow
@@ -75,17 +131,20 @@
 
     <div class="loader" id="loader">Running simulation... (Sending email & analyzing DB)</div>
     <div id="output"></div>
+    <div class="security-layers" id="securityLayers"></div>
 
     <script>
         async function startSimulation() {
             const btn = document.querySelector('.play-btn');
             const loader = document.getElementById('loader');
             const output = document.getElementById('output');
+            const securityLayers = document.getElementById('securityLayers');
 
             btn.disabled = true;
             btn.style.opacity = '0.5';
             loader.style.display = 'block';
             output.style.display = 'none';
+            securityLayers.classList.remove('show');
 
             try {
                 // Hardcoded email as requested
@@ -105,6 +164,11 @@
                 } else {
                     let formatted = data.response.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
                     output.innerHTML = formatted;
+                    
+                    // Show security layers
+                    if (data.security_layers) {
+                        showSecurityLayers(data.security_layers);
+                    }
                 }
             } catch (err) {
                 loader.style.display = 'none';
@@ -114,6 +178,43 @@
                 btn.disabled = false;
                 btn.style.opacity = '1';
             }
+        }
+        
+        function showSecurityLayers(layers) {
+            const container = document.getElementById('securityLayers');
+            let html = '<div style="margin-bottom: 10px; font-weight: bold;">🛡️ Security Layers Status:</div>';
+            
+            const layerNames = {
+                'lakera': 'Layer 1: Lakera Guard',
+                'opa': 'Layer 2: OPA Policy',
+                'presidio_input': 'Layer 3: Presidio Input'
+            };
+            
+            for (const [key, name] of Object.entries(layerNames)) {
+                if (layers[key]) {
+                    const status = layers[key];
+                    let statusClass = 'pass';
+                    let statusIcon = '✅';
+                    
+                    if (status === 'BLOCKED') {
+                        statusClass = 'blocked';
+                        statusIcon = '🚫';
+                    } else if (status.includes('SCRUBBED')) {
+                        statusClass = 'scrubbed';
+                        statusIcon = '🔒';
+                    }
+                    
+                    html += `
+                        <div class="layer-status">
+                            <span>${statusIcon} ${name}</span>
+                            <span class="status ${statusClass}">${status}</span>
+                        </div>
+                    `;
+                }
+            }
+            
+            container.innerHTML = html;
+            container.classList.add('show');
         }
     </script>
 </body>

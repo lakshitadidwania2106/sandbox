@@ -1,0 +1,17 @@
+go 1.26
+
+use (
+	./core
+	./framework
+	./plugins/governance
+	./plugins/jsonparser
+	./plugins/litellmcompat
+	./plugins/logging
+	./plugins/maxim
+	./plugins/mocker
+	./plugins/otel
+	./plugins/security
+	./plugins/semanticcache
+	./plugins/telemetry
+	./transports
+)

@@ -7,7 +7,7 @@ Used by the Bifrost Go middleware for input scrubbing.
 """
 
 from flask import Flask, request, jsonify
-from security.presidio_analyzer import scan_output, redact_output
+from security.presidio_scanner import scan_output, redact_output
 from security.lakera_guard import scan_prompt
 
 app = Flask(__name__)
@@ -65,4 +65,4 @@ def lakera_scan():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=5001)

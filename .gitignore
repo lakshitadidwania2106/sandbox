@@ -302,3 +302,4 @@ mkdocs/
 # Visual Studio
 /.vs
 /TestResults
+scenario_agent/.env

@@ -1,0 +1,8 @@
+langchain
+langchain-anthropic
+fastapi
+uvicorn
+python-dotenv
+faiss-cpu
+sqlite-utils
+pydantic

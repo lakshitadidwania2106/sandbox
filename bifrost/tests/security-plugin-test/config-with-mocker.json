@@ -1,0 +1,110 @@
+{
+  "server": {
+    "host": "0.0.0.0",
+    "port": 8080,
+    "timeout": 30
+  },
+  "providers": [
+    {
+      "name": "openai",
+      "type": "openai",
+      "api_key": "sk-dummy-key-not-used-with-mocker",
+      "models": [
+        "gpt-3.5-turbo",
+        "gpt-4",
+        "gpt-4-turbo"
+      ],
+      "default_model": "gpt-3.5-turbo"
+    }
+  ],
+  "plugins": [
+    {
+      "name": "mocker",
+      "path": "../../plugins/mocker",
+      "enabled": true,
+      "config": {
+        "enabled": true,
+        "default_behavior": "passthrough",
+        "global_latency": {
+          "type": "uniform",
+          "min": 10000000,
+          "max": 50000000
+        },
+        "rules": [
+          {
+            "name": "catch-all-mock",
+            "enabled": true,
+            "priority": 1,
+            "probability": 1.0,
+            "conditions": {},
+            "responses": [
+              {
+                "type": "success",
+                "weight": 1.0,
+                "content": {
+                  "message": "This is a mock LLM response from Bifrost. The security plugin has validated this request and allowed it to proceed.",
+                  "usage": {
+                    "prompt_tokens": 10,
+                    "completion_tokens": 25,
+                    "total_tokens": 35
+                  },
+                  "finish_reason": "stop"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "security",
+      "path": "../../plugins/security",
+      "enabled": true,
+      "config": {
+        "enable_policy_enforcement": true,
+        "policy_path": "./policies",
+        "enable_pii_detection": true,
+        "redact_pii": true,
+        "pii_entity_types": [
+          "EMAIL",
+          "PHONE",
+          "SSN",
+          "CREDIT_CARD",
+          "IP_ADDRESS",
+          "PERSON",
+          "LOCATION"
+        ],
+        "presidio_url": "http://localhost:5000",
+        "enable_prompt_injection": true,
+        "threat_score_threshold": 0.75,
+        "lakera_api_key": "${LAKERA_API_KEY}",
+        "enable_memory_poisoning": true,
+        "max_memory_writes": 100,
+        "memory_threat_threshold": 0.70,
+        "enable_tool_validation": true,
+        "allowed_tools": [
+          "read_file",
+          "list_directory",
+          "search",
+          "get_weather",
+          "calculate"
+        ],
+        "denied_tools": [
+          "execute_command",
+          "delete_file",
+          "write_database"
+        ],
+        "block_on_high_threat": true,
+        "audit_log_path": "./logs/security-audit.log",
+        "enable_http_hooks": true,
+        "enable_llm_hooks": true,
+        "enable_mcp_hooks": true
+      }
+    }
+  ],
+  "logging": {
+    "level": "info",
+    "format": "json",
+    "output": "./logs/bifrost.log"
+  }
+}

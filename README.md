@@ -19,7 +19,7 @@ User Request
 ## Layer 3: Lakera Guard (Input Security)
 
 ML-based prompt injection detection via the [Lakera Guard API](https://platform.lakera.ai/docs/api).
-
+# Works on esp32. uses llvm, but has backend for us :)  
 **What it detects:**
 - Prompt injection attacks
 - Jailbreak attempts

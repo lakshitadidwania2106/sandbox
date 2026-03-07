@@ -1,24 +1,57 @@
-# Secrets and Credentials
+# Environment variables
 .env
-credentials.json
-token.pickle
-
-# Database
- company.db
-*.sqlite3
-*.db
+scenario_agent/.env
 
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
-venv/
-.venv/
-env/
-.env/
-scenario_agent/.env
-mcp_gateaway/.env
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
 
-# Editor/OS
-.DS_Store
+# Virtual environments
+venv/
+env/
+ENV/
+
+# mitmproxy certificates (user-specific)
+.mitmproxy/
+
+# Proprietary code (keep private!)
+proprietary_code/*.py
+!proprietary_code/secret_algorithm.py
+
+# IDE
 .vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+
+# Compiled plugin
+*.so
+proprietary_detection.so
+
+# Bifrost (if included)
+bifrost/core/
+bifrost/docs/
+bifrost/examples/
+
+# Temporary files
+*.tmp
+*.bak
+*.swp

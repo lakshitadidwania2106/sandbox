@@ -16,6 +16,8 @@ venv/
 .venv/
 env/
 .env/
+scenario_agent/.env
+mcp_gateaway/.env
 
 # Editor/OS
 .DS_Store

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amazon Order Simulator</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .play-btn {
+            background-color: #00c853;
+            color: #fff;
+            font-size: 24px;
+            font-weight: bold;
+            padding: 20px 40px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 200, 83, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .play-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(0, 200, 83, 0.6);
+        }
+
+        .play-btn:active {
+            transform: scale(0.95);
+        }
+
+        #output {
+            margin-top: 40px;
+            width: 80%;
+            max-width: 600px;
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            border: 1px solid #333;
+            min-height: 100px;
+            font-size: 16px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            display: none;
+        }
+
+        .loader {
+            display: inline-block;
+            margin-top: 20px;
+            font-size: 18px;
+            color: #aaa;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <button class="play-btn" onclick="startSimulation()">
+        ▶️ Simulate Amazon Order Flow
+    </button>
+
+    <div class="loader" id="loader">Running simulation... (Sending email & analyzing DB)</div>
+    <div id="output"></div>
+
+    <script>
+        async function startSimulation() {
+            const btn = document.querySelector('.play-btn');
+            const loader = document.getElementById('loader');
+            const output = document.getElementById('output');
+
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+            loader.style.display = 'block';
+            output.style.display = 'none';
+
+            try {
+                // Hardcoded email as requested
+                const response = await fetch('/api/simulate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: "lakshita21lr@gmail.com" })
+                });
+
+                const data = await response.json();
+                
+                loader.style.display = 'none';
+                output.style.display = 'block';
+
+                if (data.error) {
+                    output.innerHTML = `<span style="color: #ff5252">Error: ${data.error}</span>`;
+                } else {
+                    let formatted = data.response.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                    output.innerHTML = formatted;
+                }
+            } catch (err) {
+                loader.style.display = 'none';
+                output.style.display = 'block';
+                output.innerHTML = `<span style="color: #ff5252">Connection Error: ${err.message}</span>`;
+            } finally {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+            }
+        }
+    </script>
+</body>
+</html>

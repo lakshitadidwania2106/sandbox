@@ -10,48 +10,54 @@ import (
 )
 
 type LakeraMiddleware struct {
-	apiKey    string
-	apiURL    string
-	threshold float64
-	client    *http.Client
+	serviceURL string
+	client     *http.Client
+}
+
+type LakeraResponse struct {
+	Flagged     bool   `json:"flagged"`
+	RequestUUID string `json:"request_uuid"`
+	Error       string `json:"error"`
 }
 
 func NewLakeraMiddleware() *LakeraMiddleware {
-	apiKey := os.Getenv("LAKERA_API_KEY")
-	apiURL := os.Getenv("LAKERA_API_URL")
-	if apiURL == "" {
-		apiURL = "https://api.lakera.ai"
+	serviceURL := os.Getenv("SECURITY_SERVICE_URL")
+	if serviceURL == "" {
+		serviceURL = "http://localhost:5000"
 	}
 	return &LakeraMiddleware{
-		apiKey: apiKey,
-		apiURL: apiURL,
-		client: &http.Client{},
+		serviceURL: serviceURL,
+		client:     &http.Client{},
 	}
 }
 
 func (l *LakeraMiddleware) CheckPromptInjection(text string) (bool, string) {
-	if l.apiKey == "" {
-		return false, ""
-	}
-
-	reqBody, _ := json.Marshal(map[string]string{"input": text})
-	req, _ := http.NewRequest("POST", l.apiURL+"/v1/prompt_injection", bytes.NewBuffer(reqBody))
-	req.Header.Set("Authorization", "Bearer "+l.apiKey)
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := l.client.Do(req)
+	reqBody, _ := json.Marshal(map[string]string{"text": text})
+	
+	resp, err := l.client.Post(
+		l.serviceURL+"/lakera/scan",
+		"application/json",
+		bytes.NewBuffer(reqBody),
+	)
 	if err != nil {
 		return false, ""
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
-	var result map[string]interface{}
-	json.Unmarshal(body, &result)
+	if resp.StatusCode != http.StatusOK {
+		return false, ""
+	}
 
-	if flagged, ok := result["flagged"].(bool); ok && flagged {
-		return true, fmt.Sprintf("prompt injection detected")
+	body, _ := io.ReadAll(resp.Body)
+	var result LakeraResponse
+	if err := json.Unmarshal(body, &result); err != nil {
+		return false, ""
+	}
+
+	if result.Flagged {
+		return true, fmt.Sprintf("prompt injection detected (ID: %s)", result.RequestUUID)
 	}
 
 	return false, ""
 }
+

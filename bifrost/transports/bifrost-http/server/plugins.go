@@ -7,6 +7,8 @@ import (
 
 	"github.com/maximhq/bifrost/core/schemas"
 	"github.com/maximhq/bifrost/plugins/governance"
+	"github.com/maximhq/bifrost/plugins/mocker"
+	"github.com/maximhq/bifrost/plugins/security"
 	"github.com/maximhq/bifrost/plugins/litellmcompat"
 	"github.com/maximhq/bifrost/plugins/logging"
 	"github.com/maximhq/bifrost/plugins/maxim"
@@ -107,6 +109,20 @@ func loadBuiltinPlugin(ctx context.Context, name string, pluginConfig any, bifro
 			return nil, fmt.Errorf("failed to marshal litellmcompat plugin config: %w", err)
 		}
 		return litellmcompat.Init(*litellmConfig, logger)
+
+	case "mocker":
+		mockerConfig, err := MarshalPluginConfig[mocker.MockerConfig](pluginConfig)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal mocker plugin config: %w", err)
+		}
+		return mocker.Init(*mockerConfig)
+
+	case "security":
+		securityConfig, err := MarshalPluginConfig[security.SecurityConfig](pluginConfig)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal security plugin config: %w", err)
+		}
+		return security.NewSecurityPlugin(securityConfig, logger)
 
 	default:
 		return nil, fmt.Errorf("unknown built-in plugin: %s", name)

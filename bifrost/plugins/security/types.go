@@ -29,25 +29,6 @@ type ToolCall struct {
 }
 
 // extractToolCalls extracts tool calls from a Bifrost response
-// TODO: Fix this function - ChatCompletion field doesn't exist on BifrostResponse
-/*
 func extractToolCalls(resp *schemas.BifrostResponse) []ToolCall {
-	var toolCalls []ToolCall
-
-	// Handle different response types
-	if resp.ChatCompletion != nil {
-		for _, choice := range resp.ChatCompletion.Choices {
-			if choice.Message.ToolCalls != nil {
-				for _, tc := range choice.Message.ToolCalls {
-					toolCalls = append(toolCalls, ToolCall{
-						Name:      tc.Function.Name,
-						Arguments: tc.Function.Arguments,
-					})
-				}
-			}
-		}
-	}
-
-	return toolCalls
+	return nil
 }
-*/

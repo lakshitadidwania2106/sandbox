@@ -947,11 +947,13 @@ func (s *BifrostHTTPServer) RegisterAPIRoutes(ctx context.Context, callbacks Ser
 		governancePluginName = name
 	}
 	governancePlugin, _ := lib.FindPluginAs[schemas.LLMPlugin](s.Config, governancePluginName)
-	if governancePlugin != nil {
+	if governancePlugin != nil && s.Config.ConfigStore != nil {
 		governanceHandler, err = handlers.NewGovernanceHandler(callbacks, s.Config.ConfigStore)
 		if err != nil {
 			return fmt.Errorf("failed to initialize governance handler: %v", err)
 		}
+	} else if governancePlugin != nil {
+		logger.Warn("governance plugin installed but config store is nil, skipping governance handler initialization")
 	}
 	var cacheHandler *handlers.CacheHandler
 	semanticCachePlugin, _ := lib.FindPluginAs[*semanticcache.Plugin](s.Config, semanticcache.PluginName)

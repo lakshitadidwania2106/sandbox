@@ -78,17 +78,17 @@ func (g *BifrostGateway) Handle(w http.ResponseWriter, r *http.Request) {
 
 	// ═══ INPUT PIPELINE ═══
 	
-	// Layer 1: OPA Policy Check
-	if allowed, reason := g.opa.CheckPolicy(r, payload); !allowed {
-		log.Printf("🚫 OPA blocked: %s", reason)
-		http.Error(w, "Policy violation: "+reason, http.StatusForbidden)
-		return
-	}
-
-	// Layer 2: Lakera Prompt Injection Detection
+	// Layer 1: Lakera Prompt Injection Detection
 	if blocked, reason := g.lakera.CheckPromptInjection(text); blocked {
 		log.Printf("🚫 Lakera blocked: %s", reason)
 		http.Error(w, "Security threat detected: "+reason, http.StatusForbidden)
+		return
+	}
+
+	// Layer 2: OPA Policy Check
+	if allowed, reason := g.opa.CheckPolicy(r, payload); !allowed {
+		log.Printf("🚫 OPA blocked: %s", reason)
+		http.Error(w, "Policy violation: "+reason, http.StatusForbidden)
 		return
 	}
 
